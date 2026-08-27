@@ -216,7 +216,7 @@ def run_tests(
             "-c",
             "import asyncio, os; "
             "from modal_native_test_stack_poc.application import PostgresAssetRepository; "
-            "repository=PostgresAssetRepository(os.environ['MODAL_ML_POSTGRES_URL']); "
+            "repository=PostgresAssetRepository(os.environ['MULTIMODAL_POSTGRES_URL']); "
             "asyncio.run(repository.initialize())",
             timeout=120,
         )

@@ -1,4 +1,4 @@
-"""FastAPI factory. Calling the factory is the first remote-only operation."""
+"""FastAPI application factory."""
 
 from __future__ import annotations
 
@@ -56,10 +56,7 @@ def create_app(
     app = FastAPI(
         title=resolved_settings.app_name,
         version=resolved_settings.app_version,
-        description=(
-            "A Modal-native multimodal API backed by real offline Hugging Face models, "
-            "PostgreSQL, Redis, and OpenSearch."
-        ),
+        description="A multimodal API backed by PostgreSQL, Redis, and OpenSearch.",
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings

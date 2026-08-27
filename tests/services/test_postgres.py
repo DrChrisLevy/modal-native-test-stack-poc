@@ -11,10 +11,12 @@ import pytest
 
 def _postgres_url() -> str:
     url = (
-        os.getenv("MODAL_ML_POSTGRES_URL") or os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+        os.getenv("MULTIMODAL_POSTGRES_URL")
+        or os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
     )
     if not url:
-        pytest.skip("PostgreSQL Sidecar URL is not configured")
+        pytest.skip("PostgreSQL URL is not configured")
     return url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 

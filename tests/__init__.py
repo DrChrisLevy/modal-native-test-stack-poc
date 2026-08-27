@@ -1,1 +1,1 @@
-"""Test suite for the public Modal ML laboratory."""
+"""Application and execution-harness tests."""

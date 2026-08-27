@@ -124,7 +124,7 @@ class ModelRegistry:
         self._bundle(key)
 
     def unload(self, key: str | None = None) -> None:
-        """Drop cached model references, mainly for bounded-memory test sessions."""
+        """Drop cached model references."""
 
         with self._load_lock:
             if key is None:

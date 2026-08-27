@@ -1,4 +1,4 @@
-"""Direct local control plane for the Modal-native lab."""
+"""Command-line interface for the Modal execution harness."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     test = subparsers.add_parser(
         "test",
-        help="run pytest-xdist in one fresh full-stack Sandbox",
+        help="run pytest in one fresh full-stack Sandbox",
     )
     test.add_argument("--workers", type=int, default=4)
     test.add_argument("--no-lint", action="store_true")
@@ -70,8 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument("--secret", action="append", default=[], help="named Modal Secret")
     agent.add_argument("--offline", action="store_true", help="block public network egress")
 
-    subparsers.add_parser("status", help="list only live resources owned by this lab")
-    cleanup = subparsers.add_parser("cleanup", help="terminate only resources owned by this lab")
+    subparsers.add_parser("status", help="list live resources owned by this project")
+    cleanup = subparsers.add_parser(
+        "cleanup", help="terminate live resources owned by this project"
+    )
     cleanup.add_argument("--run-id", help="limit cleanup to one tagged run")
     return parser
 

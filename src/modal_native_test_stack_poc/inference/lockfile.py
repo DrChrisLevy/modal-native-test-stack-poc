@@ -24,7 +24,7 @@ EXPECTED_TASKS = {
 
 
 class ModelManifestError(ValueError):
-    """Raised when ``models.lock.json`` violates its public contract."""
+    """Raised when the model manifest is invalid."""
 
 
 class ModelSnapshotMissingError(FileNotFoundError):
@@ -140,9 +140,8 @@ class ModelManifest:
 class SnapshotResolver:
     """Resolve only pre-fetched local snapshots; never resolve a remote repo ID.
 
-    The public Modal seeder materializes each snapshot at ``/models/{key}``. Two
-    standard Hugging Face cache layouts are also understood to make the registry
-    convenient in diagnostics and contract tests.
+    Direct snapshot directories and standard Hugging Face cache layouts are
+    supported.
     """
 
     def __init__(self, models_root: str | Path) -> None:

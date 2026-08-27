@@ -1,307 +1,84 @@
-> **This is a vibe-coded proof of concept built to show off some cool Modal features.**
->
-> It is an experiment and demonstration—not a production framework or reference
-> architecture.
+> **This is a vibe-coded proof of concept for running a Python application and its
+> development workflow on Modal. It is not production software.**
 
 # Modal-Native Test Stack POC
 
-A clean-room, production-shaped multimodal application whose development and test
-environment runs on Modal.
+This repository demonstrates a Python development workflow that runs entirely on
+Modal:
 
-The laptop is only the control plane: edit files, run the lightweight CLI, and inspect
-artifacts. FastAPI, Python/ML dependencies, real Hugging Face inference, PostgreSQL,
-Redis, OpenSearch, pytest, Ruff, remote shells, and optional coding agents all execute
-in Modal Sandboxes.
+- A standalone FastAPI application exercises real inference and data services.
+- A Modal runner builds the environment and runs tests, the API, shells, and coding
+  agents in a Sandbox.
 
-There is no Dockerfile, Docker daemon, Docker Compose, Docker-in-Docker, or GitHub
-Actions workflow in this repository.
-
-## What this demonstrates
-
-- One `uv.lock`-backed Modal Image containing a substantial CPU ML stack.
-- Source layered after dependencies, so editing the application does not reinstall
-  Torch.
-- Seven real, immutable Hugging Face model revisions across text, vision, and audio.
-- Model weights stored in a named Modal Volume and mounted read-only.
-- One fresh test Sandbox with PostgreSQL, Redis, and OpenSearch Sidecars.
-- Capability-aware pytest-xdist parallelism inside that Sandbox.
-- Concurrent Ruff, native combined coverage, JUnit output, phase timings, and
-  guaranteed teardown.
-- The same environment reused for tests, an API server, a remote shell, or a coding
-  agent.
-- Real model and service paths throughout. No model output is mocked.
+The application does not import Modal. The runner packages it into an Image, mounts
+reusable data from a Volume, and attaches PostgreSQL, Redis, and OpenSearch Sidecars.
 
 ```text
-local editor + small Modal CLI
-              |
-              v
-cached dependency Image + current source
-              |
-              v
-       one fresh test Sandbox
-       +-- /models (read-only Volume)
-       +-- pytest-xdist
-       |   +-- text lane
-       |   +-- image lane
-       |   +-- audio lane
-       |   +-- core/service lane
-       +-- Ruff (concurrent)
-       +-- PostgreSQL Sidecar
-       +-- Redis Sidecar
-       +-- OpenSearch Sidecar
+local CLI -> Modal Sandbox -> application + Volume + Sidecars
 ```
 
-Sidecars cannot mount Modal Volumes, so inference stays in the main Sandbox and only
-the disposable infrastructure processes run as Sidecars.
+There is no Docker, Compose, Docker-in-Docker, or GitHub Actions workflow.
 
-## Real models
+## Requirements
 
-`models.lock.json` pins every repository to a full commit SHA.
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
+- A configured Modal profile and Environment
+- Access to Modal Sandbox Sidecars, which are currently alpha
 
-| Capability | Hugging Face model | Output |
-|---|---|---|
-| Text embedding | [`sentence-transformers/all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) | normalized 384-d vector |
-| Sentiment | [`distilbert/distilbert-base-uncased-finetuned-sst-2-english`](https://huggingface.co/distilbert/distilbert-base-uncased-finetuned-sst-2-english) | label and probability |
-| Named entities | [`dslim/bert-base-NER`](https://huggingface.co/dslim/bert-base-NER) | grouped spans, labels, and scores |
-| Summarization | [`google/flan-t5-small`](https://huggingface.co/google/flan-t5-small) | deterministic short text |
-| Image classification | [`microsoft/resnet-18`](https://huggingface.co/microsoft/resnet-18) | ranked ImageNet labels |
-| Image embedding | [`openai/clip-vit-base-patch32`](https://huggingface.co/openai/clip-vit-base-patch32) | normalized 512-d vector |
-| Speech recognition | [`openai/whisper-tiny.en`](https://huggingface.co/openai/whisper-tiny.en) | English transcript |
-
-The seeder downloads only the artifacts required by those exact revisions. Six models
-use safetensors; the pinned CLIP snapshot has no safetensors file and retains its
-required `pytorch_model.bin`. The filtered Volume payload is about 1.9 GB instead of
-about 8.4 GB of duplicate framework/export artifacts.
-
-Normal sessions set `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`. Loaders receive
-only local `/models/<capability>` paths with `local_files_only=True` and
-`trust_remote_code=False`. A missing snapshot fails visibly instead of downloading
-during a test.
-
-## Prerequisites
-
-- `uv` on the local machine.
-- A configured Modal profile and Environment.
-- A Modal workspace allowlisted for Sandbox Sidecars, which are currently alpha.
-
-Select the account outside the repository:
+Select the Modal account before running commands:
 
 ```bash
 export MODAL_PROFILE=your-profile
 export MODAL_ENVIRONMENT=dev
 ```
 
-No account name, token, secret, or environment-specific URL is committed here.
-
-## First run
-
-From the repository root:
+## Setup
 
 ```bash
-# Prebuild the Python/ML runtime and all three Sidecar Images.
 uv run modal-native-test-stack-poc build
-
-# Populate the named model Volume from immutable revisions.
 uv run modal-native-test-stack-poc seed
-
-# Inspect the Volume's committed manifest without loading a model.
-uv run modal-native-test-stack-poc check-models
-
-# Run the full suite in one Sandbox with four capability-aware workers.
-uv run modal-native-test-stack-poc test --workers 4
+uv run modal-native-test-stack-poc test
 ```
 
-`uv run` installs only the small local control-plane dependencies. The `remote` and
-`test` extras live inside the cached Modal Image; application code and tests are not
-executed on the laptop.
+`build` prepares the Images, `seed` populates the reusable Volume, and `test` creates
+one Sandbox with one set of Sidecars. pytest and Ruff run remotely, and test artifacts
+are copied to `artifacts/modal/<run-id>/`.
 
-## Tests
+Tests do not run locally. Pass pytest arguments after `--`:
 
 ```bash
-# Recommended: full suite, concurrent lint, JUnit, and coverage.
-uv run modal-native-test-stack-poc test --workers 4
-
-# Resource-equivalent serial control.
-uv run modal-native-test-stack-poc test --workers 1
-
-# Real-model, live-service, and end-to-end contracts only.
-uv run modal-native-test-stack-poc smoke --workers 3
-
-# Focused diagnosis in one fresh full-stack Sandbox.
 uv run modal-native-test-stack-poc test --workers 1 --no-lint -- \
   tests/model/test_text_models.py -x
 ```
 
-The default xdist strategy is `loadgroup`. Collection assigns every test to one of
-four explicit affinity groups:
-
-- `text` keeps four text models and their API/e2e contracts in one worker process.
-- `image` keeps the two vision models together.
-- `audio` keeps Whisper and its contracts together.
-- `core` contains tests that do not load a model.
-
-Each worker gets one session-scoped model registry, including API and end-to-end
-fixtures. This avoids repeatedly loading the same model bundle while still overlapping
-independent capabilities. With four workers, the intended steady state is one lane per
-group. Native ML thread counts are divided by the xdist worker count to avoid CPU
-oversubscription.
-
-The three services are shared by the workers, but test state is not:
-
-- The base PostgreSQL schema is bootstrapped before xdist starts; later idempotent
-  initialization is harmless, and test rows use UUIDs.
-- Redis keys include the xdist run and worker namespace.
-- OpenSearch test indexes use unique names.
-
-The runner emits one `junit.xml`, one `coverage.xml`, and one `summary.json` under
-`artifacts/modal/<run-id>/`. The summary separates Image resolution, Sandbox creation,
-Sidecar attachment, semantic readiness, schema bootstrap, tests/lint, artifact
-collection, and teardown submission. See [BENCHMARKS.md](BENCHMARKS.md) for the
-measurements behind the single-stack decision.
-
-Readiness checks intentionally verify behavior rather than only open ports:
-
-- PostgreSQL executes a real query.
-- Redis completes a write/read/delete round trip.
-- OpenSearch creates, writes, reads, and deletes a temporary index.
-
-## Images and weights
+## Other commands
 
 ```bash
-uv run modal-native-test-stack-poc build
-uv run modal-native-test-stack-poc build --agent
-uv run modal-native-test-stack-poc seed
-uv run modal-native-test-stack-poc check-models
-```
-
-Use `build --force` only when intentionally bypassing Modal's Image cache. Use
-`seed --force` only when intentionally replacing snapshots in this project's named
-Volume.
-
-## Remote development shell
-
-```bash
+uv run modal-native-test-stack-poc smoke
 uv run modal-native-test-stack-poc shell
-uv run modal-native-test-stack-poc shell --command 'pytest tests/model/test_text_models.py -x'
-uv run modal-native-test-stack-poc shell --no-services --command 'ruff check src tests'
-```
-
-The default shell has real services and the read-only model Volume. Public network
-egress is blocked unless `--network` is explicitly supplied.
-
-## FastAPI
-
-```bash
 uv run modal-native-test-stack-poc api
-```
-
-This starts Uvicorn in the prepared Sandbox, prints the encrypted Modal tunnel URL,
-and attaches a remote shell. Exiting the shell tears down the API and all Sidecars.
-
-Principal routes:
-
-```text
-GET  /health/live
-GET  /health/ready
-GET  /v1/models
-POST /v1/text/embed
-POST /v1/text/sentiment
-POST /v1/text/entities
-POST /v1/text/summarize
-POST /v1/images/classify
-POST /v1/images/embed
-POST /v1/audio/transcribe
-POST /v1/assets/text
-POST /v1/assets/image
-POST /v1/assets/audio
-GET  /v1/assets/{asset_id}
-POST /v1/search
-```
-
-Asset endpoints exercise the full path: inference, revision-aware Redis caching,
-PostgreSQL persistence, and OpenSearch lexical/vector indexing.
-
-## Coding-agent environment
-
-The optional agent Image installs a checksum-verified, version-pinned Codex CLI after
-the dependency layer and before changing source. It uses the same models and Sidecars
-as tests.
-
-For a one-shot Codex task, expose an API key through a named Modal Secret:
-
-```bash
-export MODAL_NATIVE_TEST_STACK_POC_AGENT_SECRET=your-modal-secret-name
-uv run modal-native-test-stack-poc agent \
-  --prompt 'Inspect the failing tests, fix the bug, and rerun them.'
-```
-
-An interactive session omits `--prompt`. A custom command can demonstrate the
-environment without building Codex:
-
-```bash
-uv run modal-native-test-stack-poc agent \
-  --command 'python -c "print(\"agent environment ready\")"'
-```
-
-The checkout is initialized as an ephemeral Git repository and the resulting binary
-patch, including new files, is copied to
-`artifacts/modal/<run-id>/agent.patch`. The local checkout is never changed
-automatically.
-
-## Resource ownership and cleanup
-
-The harness uses narrow names and tags:
-
-- App: `modal-native-test-stack-poc`
-- Volume: `modal-native-test-stack-poc-models`
-- Sandbox ownership tag:
-  `modal-native-test-stack-poc-owner=modal-native-test-stack-poc`
-- Per-run and per-role tags on every Sandbox
-
-Normal commands terminate their main Sandbox and Sidecars in `finally` blocks. If a
-client is interrupted or a failed run was deliberately kept, inspect and clean only
-this project's tagged resources:
-
-```bash
+uv run modal-native-test-stack-poc agent --secret your-openai-secret
 uv run modal-native-test-stack-poc status
 uv run modal-native-test-stack-poc cleanup
-uv run modal-native-test-stack-poc cleanup --run-id <run-id>
 ```
 
-The model Volume is intentionally persistent so subsequent runs do not redownload
-weights. Its deletion is separate, explicit, scoped, and irreversible:
+Use `<command> --help` for options. `api` prints a tunnel URL; `shell` and `agent` open
+interactive remote sessions.
+
+## Cleanup
+
+Sandboxes and Sidecars terminate when a command exits. Images and the Volume persist.
+
+To delete the Volume:
 
 ```bash
 uv run modal-native-test-stack-poc delete-models --yes
 ```
 
-Cached Images and the empty named App may remain as Modal metadata, but no live compute
-is required between commands. Names and resource sizes can be overridden with
-`MODAL_NATIVE_TEST_STACK_POC_*` environment variables; see
-`src/modal_native_test_stack_poc/remote/config.py`.
+## Benchmarks
 
-## Alpha caveats
+See [BENCHMARKS.md](BENCHMARKS.md) for measured serial and parallel test timings.
 
-Modal Sandbox Sidecars are experimental and require workspace access. In the current
-API:
-
-- Sidecar Images must be built before attachment.
-- Sidecars share the main Sandbox CPU and memory allocation.
-- Sidecars cannot mount Volumes.
-- Sidecar filesystems are ephemeral and are not included in Sandbox snapshots.
-- Creation returns before a service is ready, so bounded readiness polling is
-  required.
-
-This project intentionally treats those constraints as visible application behavior.
-
-## Clean-room boundary
-
-The repository uses only public packages, public model repositories, generated media
-fixtures, synthetic application code, and a freshly resolved lockfile. It does not
-contain or mechanically reproduce private application source, tests, schemas, service
-names, repository metadata, credentials, or dependency locks.
-
-## License
-
-The project source is MIT licensed. Model weights remain governed by their respective
-Hugging Face repository licenses.
+The project source is MIT licensed. Dependencies and model data retain their own
+licenses.

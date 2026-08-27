@@ -1,4 +1,4 @@
-"""Concrete adapters for the three real Sidecar services."""
+"""PostgreSQL, Redis, and OpenSearch adapters."""
 
 from __future__ import annotations
 
@@ -161,7 +161,7 @@ class RedisJsonCache:
 
 
 class OpenSearchAssetIndex:
-    """Hybrid lexical/vector index backed by a real OpenSearch Sidecar."""
+    """OpenSearch-backed lexical and vector index."""
 
     def __init__(self, url: str, index_name: str, *, verify_certs: bool = False) -> None:
         self.url = url

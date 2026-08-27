@@ -1,4 +1,4 @@
-"""Real, offline Hugging Face inference for the Modal ML lab."""
+"""Offline Hugging Face inference."""
 
 from .lockfile import (
     ModelManifest,

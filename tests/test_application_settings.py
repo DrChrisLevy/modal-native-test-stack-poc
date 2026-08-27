@@ -12,7 +12,7 @@ from modal_native_test_stack_poc.application.settings import ApplicationSettings
 @pytest.fixture(autouse=True)
 def _isolate_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in tuple(os.environ):
-        if key.upper().startswith("MODAL_ML_"):
+        if key.upper().startswith("MULTIMODAL_"):
             monkeypatch.delenv(key, raising=False)
 
 
@@ -43,15 +43,15 @@ def test_settings_default_embedding_dimensions_match_models() -> None:
 @pytest.mark.parametrize(
     ("variable", "attribute", "value", "expected"),
     [
-        ("MODAL_ML_APP_NAME", "app_name", "Remote Lab", "Remote Lab"),
-        ("MODAL_ML_MODEL_DEVICE", "model_device", "cuda", "cuda"),
-        ("MODAL_ML_CACHE_NAMESPACE", "cache_namespace", "test-worker", "test-worker"),
-        ("MODAL_ML_CACHE_TTL_SECONDS", "cache_ttl_seconds", "90", 90),
-        ("MODAL_ML_TEXT_EMBEDDING_DIMENSIONS", "text_embedding_dimensions", "16", 16),
-        ("MODAL_ML_MAXIMUM_UPLOAD_BYTES", "maximum_upload_bytes", "1024", 1024),
+        ("MULTIMODAL_APP_NAME", "app_name", "Remote Lab", "Remote Lab"),
+        ("MULTIMODAL_MODEL_DEVICE", "model_device", "cuda", "cuda"),
+        ("MULTIMODAL_CACHE_NAMESPACE", "cache_namespace", "test-worker", "test-worker"),
+        ("MULTIMODAL_CACHE_TTL_SECONDS", "cache_ttl_seconds", "90", 90),
+        ("MULTIMODAL_TEXT_EMBEDDING_DIMENSIONS", "text_embedding_dimensions", "16", 16),
+        ("MULTIMODAL_MAXIMUM_UPLOAD_BYTES", "maximum_upload_bytes", "1024", 1024),
     ],
 )
-def test_settings_read_modal_prefixed_environment(
+def test_settings_read_prefixed_environment(
     monkeypatch: pytest.MonkeyPatch,
     variable: str,
     attribute: str,
@@ -63,13 +63,13 @@ def test_settings_read_modal_prefixed_environment(
 
 
 def test_settings_environment_is_case_insensitive(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("modal_ml_app_name", "lowercase")
+    monkeypatch.setenv("multimodal_app_name", "lowercase")
     assert ApplicationSettings().app_name == "lowercase"
 
 
 def test_unrelated_environment_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SOMETHING_UNRELATED", "value")
-    assert ApplicationSettings().app_name == "Modal-Native Test Stack POC"
+    assert ApplicationSettings().app_name == "Multimodal Asset API"
 
 
 @pytest.mark.parametrize("cache_ttl", [0, -1, 86_401])

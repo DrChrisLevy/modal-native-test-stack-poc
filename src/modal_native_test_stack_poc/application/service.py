@@ -1,4 +1,4 @@
-"""Application orchestration over real models and real Sidecar services."""
+"""Multimodal application services."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ from .settings import ApplicationSettings
 
 
 class MultimodalService:
-    """Use case layer shared by HTTP, tests, shells, and coding agents."""
+    """Multimodal asset and inference use cases."""
 
     def __init__(
         self,
@@ -132,8 +132,7 @@ class MultimodalService:
         if cached is not None:
             return TextAnalysis.from_dict(cached)
 
-        # Loading sequentially keeps peak RAM predictable. pytest-xdist parallelizes
-        # capability lanes across worker processes during test runs.
+        # Load models sequentially to bound peak memory.
         analysis = TextAnalysis(
             embedding=await self.embed_text(cleaned),
             sentiment=await self.predict_sentiment(cleaned),
@@ -355,6 +354,6 @@ def _clean_title(title: str | None) -> str | None:
 
 
 def project_default_lockfile() -> Path:
-    """Convenience path for non-Modal diagnostics from the repository root."""
+    """Return the repository's model manifest path."""
 
     return Path(__file__).resolve().parents[3] / "models.lock.json"

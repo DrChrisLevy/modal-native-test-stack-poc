@@ -1,4 +1,4 @@
-"""Configuration for the deliberately project-specific Modal harness."""
+"""Configuration for the Modal execution harness."""
 
 from __future__ import annotations
 

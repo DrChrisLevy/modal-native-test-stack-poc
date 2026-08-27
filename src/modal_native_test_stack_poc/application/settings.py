@@ -1,4 +1,4 @@
-"""Runtime configuration for the remote-only application environment."""
+"""Application configuration."""
 
 from __future__ import annotations
 
@@ -9,28 +9,28 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ApplicationSettings(BaseSettings):
-    """Configuration supplied by the Modal Sandbox and its Sidecars."""
+    """Configuration loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_prefix="MODAL_ML_",
+        env_prefix="MULTIMODAL_",
         case_sensitive=False,
         extra="ignore",
     )
 
-    app_name: str = "Modal-Native Test Stack POC"
+    app_name: str = "Multimodal Asset API"
     app_version: str = "0.1.0"
     models_lock_path: Path = Path("/workspace/models.lock.json")
     models_root: Path = Path("/models")
     model_device: str = "cpu"
     require_commit_pins: bool = True
 
-    postgres_url: str = "postgresql://modal_lab:modal_lab@postgres:5432/modal_lab"
+    postgres_url: str = "postgresql://postgres:postgres@postgres:5432/multimodal"
     redis_url: str = "redis://redis:6379/0"
     opensearch_url: str = "http://opensearch:9200"
-    opensearch_index: str = "modal-ml-assets-v1"
+    opensearch_index: str = "multimodal-assets-v1"
     opensearch_verify_certs: bool = False
 
-    cache_namespace: str = "modal-native-test-stack-poc:v1"
+    cache_namespace: str = "multimodal-assets:v1"
     cache_ttl_seconds: int = Field(default=3_600, ge=1, le=86_400)
     text_embedding_dimensions: int = Field(default=384, ge=1)
     image_embedding_dimensions: int = Field(default=512, ge=1)
@@ -38,5 +38,4 @@ class ApplicationSettings(BaseSettings):
     maximum_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1)
 
 
-# Short alias for callers that prefer the conventional name.
 Settings = ApplicationSettings

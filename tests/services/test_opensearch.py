@@ -9,9 +9,9 @@ import pytest
 
 
 def _opensearch_url() -> str:
-    url = os.getenv("MODAL_ML_OPENSEARCH_URL") or os.getenv("OPENSEARCH_URL")
+    url = os.getenv("MULTIMODAL_OPENSEARCH_URL") or os.getenv("OPENSEARCH_URL")
     if not url:
-        pytest.skip("OpenSearch Sidecar URL is not configured")
+        pytest.skip("OpenSearch URL is not configured")
     return url.rstrip("/")
 
 

@@ -131,7 +131,7 @@ def test_cache_key_includes_every_model_revision(
     unstarted_service: MultimodalService,
 ) -> None:
     key = unstarted_service._cache_key("text", "digest", ("text_embedding", "sentiment"))
-    assert key.startswith("modal-native-test-stack-poc:v1:text:digest:")
+    assert key.startswith("multimodal-assets:v1:text:digest:")
     assert "text_embedding@" in key
     assert "sentiment@" in key
 

@@ -1,8 +1,4 @@
-"""Typed, serialization-friendly inference results.
-
-This module intentionally depends only on the standard library. Importing it on a
-developer laptop does not import Torch, Transformers, Pillow, or NumPy.
-"""
+"""Typed, serialization-friendly inference results."""
 
 from __future__ import annotations
 

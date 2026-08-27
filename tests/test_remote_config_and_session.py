@@ -206,7 +206,7 @@ def test_sandbox_environment_is_offline_and_volume_backed(runtime_config: Runtim
     environment = session.environment()
     assert environment["HF_HUB_OFFLINE"] == "1"
     assert environment["TRANSFORMERS_OFFLINE"] == "1"
-    assert environment["MODAL_ML_MODELS_ROOT"] == "/models"
+    assert environment["MULTIMODAL_MODELS_ROOT"] == "/models"
 
 
 def test_sandbox_environment_points_at_sidecar_dns(runtime_config: RuntimeConfig) -> None:
@@ -219,9 +219,9 @@ def test_sandbox_environment_points_at_sidecar_dns(runtime_config: RuntimeConfig
         run_id="run-123",
     )
     environment = session.environment()
-    assert "@postgres:5432/" in environment["MODAL_ML_POSTGRES_URL"]
-    assert environment["MODAL_ML_REDIS_URL"] == "redis://redis:6379/0"
-    assert environment["MODAL_ML_OPENSEARCH_URL"] == "http://opensearch:9200"
+    assert "@postgres:5432/" in environment["MULTIMODAL_POSTGRES_URL"]
+    assert environment["MULTIMODAL_REDIS_URL"] == "redis://redis:6379/0"
+    assert environment["MULTIMODAL_OPENSEARCH_URL"] == "http://opensearch:9200"
 
 
 def test_sandbox_environment_url_encodes_postgres_password(
@@ -236,7 +236,7 @@ def test_sandbox_environment_url_encodes_postgres_password(
         run_id="run-123",
         postgres_password="slash/ space",
     )
-    assert "slash%2F%20space" in session.environment()["MODAL_ML_POSTGRES_URL"]
+    assert "slash%2F%20space" in session.environment()["MULTIMODAL_POSTGRES_URL"]
 
 
 def test_session_operations_require_a_running_sandbox(runtime_config: RuntimeConfig) -> None:

@@ -9,9 +9,9 @@ import pytest
 
 
 def _redis_url() -> str:
-    url = os.getenv("MODAL_ML_REDIS_URL") or os.getenv("REDIS_URL")
+    url = os.getenv("MULTIMODAL_REDIS_URL") or os.getenv("REDIS_URL")
     if not url:
-        pytest.skip("Redis Sidecar URL is not configured")
+        pytest.skip("Redis URL is not configured")
     return url
 
 

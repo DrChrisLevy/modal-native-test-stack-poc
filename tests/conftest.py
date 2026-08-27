@@ -25,7 +25,7 @@ def project_root() -> Path:
 
 @pytest.fixture(scope="session")
 def models_lock_path(project_root: Path) -> Path:
-    configured = os.getenv("MODAL_ML_MODELS_LOCK_PATH") or os.getenv("MODAL_ML_MODELS_LOCK")
+    configured = os.getenv("MULTIMODAL_MODELS_LOCK_PATH")
     return Path(configured) if configured else project_root / "models.lock.json"
 
 
@@ -37,7 +37,7 @@ def model_specs(models_lock_path: Path) -> dict[str, dict[str, str]]:
 
 @pytest.fixture(scope="session")
 def models_root() -> Path:
-    return Path(os.getenv("MODAL_ML_MODELS_ROOT", "/models"))
+    return Path(os.getenv("MULTIMODAL_MODELS_ROOT", "/models"))
 
 
 @pytest.fixture(scope="session")
@@ -167,7 +167,7 @@ def api_client(
         models_root=models_root,
         require_commit_pins=True,
         opensearch_index=f"modal-ml-api-tests-{uuid4().hex}",
-        cache_namespace=f"modal-native-test-stack-poc:v1:{testrun_uid}:{worker_id}:api",
+        cache_namespace=f"multimodal-tests:{testrun_uid}:{worker_id}:api",
     )
     app = create_app(settings=settings, service=build_service(settings, registry=registry))
     with TestClient(app) as client:

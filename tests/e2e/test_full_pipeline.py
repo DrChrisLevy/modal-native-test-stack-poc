@@ -30,7 +30,7 @@ async def live_service(
         models_root=models_root,
         require_commit_pins=True,
         opensearch_index=f"modal-ml-e2e-{uuid4().hex}",
-        cache_namespace=f"modal-native-test-stack-poc:v1:{testrun_uid}:{worker_id}:e2e",
+        cache_namespace=f"multimodal-tests:{testrun_uid}:{worker_id}:e2e",
         cache_ttl_seconds=300,
     )
     service = build_service(settings, registry=registry)
