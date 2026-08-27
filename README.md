@@ -1,70 +1,56 @@
 > **This is a vibe-coded proof of concept for running a Python application and its
 > development workflow on Modal. It is not production software.**
 
-# Modal-Native Test Stack POC
+# Intro
 
-This repository demonstrates a Python development workflow that runs entirely on
-Modal:
+This repo goes along with my [blog post](drchrislevy.com/blog)
+about how Modal now has alpha support for [Sandbox Sidecars](https://modal.com/docs/guide/sandbox-sidecars).
 
-- A standalone FastAPI application exercises real inference and data services.
-- A Modal runner builds the environment and runs tests, the API, shells, and coding
-  agents in a Sandbox.
+The code could possibly be trash. I never read it. It's just a talking point for my blog post
+and to give you ideas. The point is the potential of using these Modal primatives
+for development, CI, experiments with agents, etc.
 
-The application does not import Modal. The runner packages it into an Image, mounts
-reusable data from a Volume, and attaches PostgreSQL, Redis, and OpenSearch Sidecars.
+## Setup
 
-```text
-local CLI -> Modal Sandbox -> application + Volume + Sidecars
-```
-
-There is no Docker, Compose, Docker-in-Docker, or GitHub Actions workflow.
-
-## Requirements
-
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- A configured Modal profile and Environment
-- Access to Modal Sandbox Sidecars, which are currently alpha
-
-Select the Modal account before running commands:
 
 ```bash
 export MODAL_PROFILE=your-profile
 export MODAL_ENVIRONMENT=dev
 ```
 
-## Setup
+```bash
+uv sync --frozen
+uv run modal setup
+# Create once for the agent command (expects OPENAI_API_KEY in your local environment).
+uv run modal secret create openai-secret OPENAI_API_KEY="$OPENAI_API_KEY"
+```
 
 ```bash
+# pre-builds the environment
 uv run modal-native-test-stack-poc build
+# download models to modal volume
 uv run modal-native-test-stack-poc seed
+# Run the full pytest suite and Ruff remotely in one Modal Sandbox with PostgreSQL, Redis, and OpenSearch Sidecars.
 uv run modal-native-test-stack-poc test
 ```
 
-`build` prepares the Images, `seed` populates the reusable Volume, and `test` creates
-one Sandbox with one set of Sidecars. pytest and Ruff run remotely, and test artifacts
-are copied to `artifacts/modal/<run-id>/`.
-
-Tests do not run locally. Pass pytest arguments after `--`:
-
-```bash
-uv run modal-native-test-stack-poc test --workers 1 --no-lint -- \
-  tests/model/test_text_models.py -x
-```
 
 ## Other commands
 
 ```bash
-uv run modal-native-test-stack-poc smoke
+# shell into container
 uv run modal-native-test-stack-poc shell
+# Start FastAPI with real models and Sidecars on Modal, print its HTTPS URL, and keep it running until you exit
 uv run modal-native-test-stack-poc api
-uv run modal-native-test-stack-poc agent --secret your-openai-secret
+# launch an interactive Codex agent in the environment
+uv run modal-native-test-stack-poc agent
+# run one Codex prompt and exit
+uv run modal-native-test-stack-poc agent --prompt "Run the tests and summarize any failures."
+# list running sandboxes
 uv run modal-native-test-stack-poc status
+# stop/kill running sandboxes
 uv run modal-native-test-stack-poc cleanup
 ```
-
-Use `<command> --help` for options. `api` prints a tunnel URL; `shell` and `agent` open
-interactive remote sessions.
 
 ## Cleanup
 
@@ -75,10 +61,3 @@ To delete the Volume:
 ```bash
 uv run modal-native-test-stack-poc delete-models --yes
 ```
-
-## Benchmarks
-
-See [BENCHMARKS.md](BENCHMARKS.md) for measured serial and parallel test timings.
-
-The project source is MIT licensed. Dependencies and model data retain their own
-licenses.

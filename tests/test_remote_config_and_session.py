@@ -8,6 +8,7 @@ import pytest
 from modal_native_test_stack_poc.remote.config import RuntimeConfig, project_root, source_is_ignored
 from modal_native_test_stack_poc.remote.errors import ModalNativeTestStackError
 from modal_native_test_stack_poc.remote.processes import ProcessResult
+from modal_native_test_stack_poc.remote.runner import CODEX_API_KEY_LOGIN, _login_codex
 from modal_native_test_stack_poc.remote.services import OPENSEARCH, POSTGRES, REDIS, SERVICES
 from modal_native_test_stack_poc.remote.session import SandboxSession
 
@@ -193,6 +194,21 @@ def test_process_result_combines_stdout_and_stderr() -> None:
 
 def test_process_result_omits_empty_stream_separator() -> None:
     assert ProcessResult(("true",), 0, "done", "").output == "done"
+
+
+def test_codex_login_uses_the_openai_api_key_from_the_modal_secret() -> None:
+    session = Mock(spec=SandboxSession)
+
+    _login_codex(session)
+
+    session.capture.assert_called_once_with(
+        "bash",
+        "-c",
+        CODEX_API_KEY_LOGIN,
+        label="Codex API-key login",
+    )
+    assert "codex login --with-api-key" in CODEX_API_KEY_LOGIN
+    assert "OPENAI_API_KEY is missing" in CODEX_API_KEY_LOGIN
 
 
 def test_sandbox_environment_is_offline_and_volume_backed(runtime_config: RuntimeConfig) -> None:

@@ -19,3 +19,15 @@ def test_focused_pytest_arguments_remain_after_worker_option() -> None:
     arguments = build_parser().parse_args(["test", "--workers", "3", "--", "tests/model", "-x"])
 
     assert arguments.pytest_args == ["--", "tests/model", "-x"]
+
+
+def test_agent_uses_the_standard_secret_name_by_default() -> None:
+    arguments = build_parser().parse_args(["agent"])
+
+    assert arguments.secret is None
+
+
+def test_agent_accepts_a_differently_named_secret() -> None:
+    arguments = build_parser().parse_args(["agent", "--secret", "custom-openai-secret"])
+
+    assert arguments.secret == ["custom-openai-secret"]

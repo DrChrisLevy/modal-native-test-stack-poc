@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from collections.abc import Sequence
 
@@ -61,7 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     agent = subparsers.add_parser("agent", help="run Codex or another agent in the full stack")
     agent.add_argument("--prompt", help="one-shot Codex prompt; omit for the interactive TUI")
     agent.add_argument("--command", help="custom agent command instead of bundled Codex")
-    agent.add_argument("--secret", action="append", default=[], help="named Modal Secret")
+    agent.add_argument(
+        "--secret",
+        action="append",
+        help="override the default openai-secret Modal Secret",
+    )
     agent.add_argument("--offline", action="store_true", help="block public network egress")
 
     subparsers.add_parser("status", help="list live resources owned by this project")
@@ -137,10 +140,7 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
     if arguments.action == "agent":
         from modal_native_test_stack_poc.remote.runner import run_agent
 
-        secrets = list(arguments.secret)
-        default_secret = os.getenv("MODAL_NATIVE_TEST_STACK_POC_AGENT_SECRET")
-        if default_secret and default_secret not in secrets:
-            secrets.append(default_secret)
+        secrets = list(arguments.secret or ["openai-secret"])
         return run_agent(
             config,
             prompt=arguments.prompt,
