@@ -147,18 +147,29 @@ def generated_tone_wav(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture(scope="session")
-def api_client(models_lock_path: Path, models_root: Path) -> Iterator[TestClient]:
+def api_client(
+    models_lock_path: Path,
+    models_root: Path,
+    registry: ModelRegistry,
+    testrun_uid: str,
+    worker_id: str,
+) -> Iterator[TestClient]:
     from fastapi.testclient import TestClient
 
-    from modal_native_test_stack_poc.application import ApplicationSettings, create_app
+    from modal_native_test_stack_poc.application import (
+        ApplicationSettings,
+        build_service,
+        create_app,
+    )
 
     settings = ApplicationSettings(
         models_lock_path=models_lock_path,
         models_root=models_root,
         require_commit_pins=True,
         opensearch_index=f"modal-ml-api-tests-{uuid4().hex}",
+        cache_namespace=f"modal-native-test-stack-poc:v1:{testrun_uid}:{worker_id}:api",
     )
-    app = create_app(settings=settings)
+    app = create_app(settings=settings, service=build_service(settings, registry=registry))
     with TestClient(app) as client:
         yield client
 
@@ -171,3 +182,16 @@ def value_of(value: Any, *names: str) -> Any:
         if hasattr(value, name):
             return getattr(value, name)
     raise AssertionError(f"None of {names!r} are present on {type(value).__name__}")
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Keep every real-model capability in one xdist worker process."""
+
+    for item in items:
+        groups = list(item.iter_markers("xdist_group"))
+        if len(groups) > 1:
+            raise pytest.UsageError(f"{item.nodeid} belongs to multiple xdist groups")
+        if item.get_closest_marker("model") is not None and not groups:
+            raise pytest.UsageError(f"real-model test lacks an xdist affinity group: {item.nodeid}")
+        if not groups:
+            item.add_marker(pytest.mark.xdist_group(name="core"))

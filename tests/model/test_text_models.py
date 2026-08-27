@@ -8,6 +8,8 @@ import pytest
 
 from tests.conftest import value_of
 
+pytestmark = pytest.mark.xdist_group(name="text")
+
 
 def _vector(output: Any) -> list[float]:
     candidate = (

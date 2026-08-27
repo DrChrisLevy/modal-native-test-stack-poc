@@ -12,7 +12,6 @@ license = { text = "MIT" }
 authors = [{ name = "Chris Levy" }]
 dependencies = [
   "modal>=1.5.4,<1.6",
-  "typer>=0.16,<1",
 ]
 
 [project.optional-dependencies]
@@ -31,7 +30,6 @@ remote = [
   "safetensors>=0.5,<1",
   "sentence-transformers>=5,<6",
   "soundfile>=0.13,<1",
-  "sqlalchemy[asyncio]>=2.0.40,<3",
   "torch==2.13.0",
   "torchvision==0.28.0",
   "transformers>=4.53,<5",

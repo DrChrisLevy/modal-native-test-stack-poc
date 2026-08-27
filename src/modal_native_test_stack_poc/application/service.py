@@ -132,8 +132,8 @@ class MultimodalService:
         if cached is not None:
             return TextAnalysis.from_dict(cached)
 
-        # Loading sequentially keeps peak RAM predictable. Modal parallelizes model
-        # lanes across separate Sandboxes rather than forcing every model into one.
+        # Loading sequentially keeps peak RAM predictable. pytest-xdist parallelizes
+        # capability lanes across worker processes during test runs.
         analysis = TextAnalysis(
             embedding=await self.embed_text(cleaned),
             sentiment=await self.predict_sentiment(cleaned),
@@ -311,23 +311,27 @@ class MultimodalService:
 
     def _cache_key(self, kind: str, digest: str, model_keys: tuple[str, ...]) -> str:
         revisions = ":".join(f"{key}@{self.registry.get_spec(key).revision}" for key in model_keys)
-        return f"modal-native-test-stack-poc:v1:{kind}:{digest}:{revisions}"
+        return f"{self.settings.cache_namespace}:{kind}:{digest}:{revisions}"
 
 
-def build_service(settings: ApplicationSettings | None = None) -> MultimodalService:
+def build_service(
+    settings: ApplicationSettings | None = None,
+    *,
+    registry: ModelRegistry | None = None,
+) -> MultimodalService:
     """Construct adapters without connecting or loading models."""
 
     from .adapters import OpenSearchAssetIndex, PostgresAssetRepository, RedisJsonCache
 
     resolved = settings or ApplicationSettings()
-    registry = ModelRegistry.from_lockfile(
+    resolved_registry = registry or ModelRegistry.from_lockfile(
         resolved.models_lock_path,
         models_root=resolved.models_root,
         device=resolved.model_device,
         require_commit_pins=resolved.require_commit_pins,
     )
     return MultimodalService(
-        registry=registry,
+        registry=resolved_registry,
         repository=PostgresAssetRepository(resolved.postgres_url),
         cache=RedisJsonCache(resolved.redis_url),
         search_index=OpenSearchAssetIndex(

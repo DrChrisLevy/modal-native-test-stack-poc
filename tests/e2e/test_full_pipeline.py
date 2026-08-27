@@ -12,20 +12,28 @@ from modal_native_test_stack_poc.application import (
     MultimodalService,
     build_service,
 )
+from modal_native_test_stack_poc.inference import ModelRegistry
 
 pytestmark = pytest.mark.asyncio(loop_scope="module")
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
-async def live_service(models_lock_path: Path, models_root: Path):
+async def live_service(
+    models_lock_path: Path,
+    models_root: Path,
+    registry: ModelRegistry,
+    testrun_uid: str,
+    worker_id: str,
+):
     settings = ApplicationSettings(
         models_lock_path=models_lock_path,
         models_root=models_root,
         require_commit_pins=True,
         opensearch_index=f"modal-ml-e2e-{uuid4().hex}",
+        cache_namespace=f"modal-native-test-stack-poc:v1:{testrun_uid}:{worker_id}:e2e",
         cache_ttl_seconds=300,
     )
-    service = build_service(settings)
+    service = build_service(settings, registry=registry)
     await service.startup()
     try:
         yield service
@@ -51,6 +59,7 @@ async def test_full_stack_semantic_readiness(live_service: MultimodalService) ->
 @pytest.mark.model
 @pytest.mark.services
 @pytest.mark.slow
+@pytest.mark.xdist_group(name="text")
 async def test_real_text_asset_crosses_models_cache_postgres_and_opensearch(
     live_service: MultimodalService,
 ) -> None:
@@ -76,6 +85,7 @@ async def test_real_text_asset_crosses_models_cache_postgres_and_opensearch(
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 async def test_real_text_analysis_round_trips_through_redis_cache(
     live_service: MultimodalService,
 ) -> None:
@@ -86,13 +96,17 @@ async def test_real_text_analysis_round_trips_through_redis_cache(
 
     cache_client = getattr(live_service.cache, "_client", None)
     assert cache_client is not None
-    keys = [key async for key in cache_client.scan_iter("modal-native-test-stack-poc:v1:text:*")]
+    keys = [
+        key
+        async for key in cache_client.scan_iter(f"{live_service.settings.cache_namespace}:text:*")
+    ]
     assert keys
 
 
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="image")
 async def test_real_image_asset_crosses_models_cache_postgres_and_opensearch(
     live_service: MultimodalService, generated_image_path: Path
 ) -> None:
@@ -113,6 +127,7 @@ async def test_real_image_asset_crosses_models_cache_postgres_and_opensearch(
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="image")
 async def test_real_image_analysis_round_trips_through_redis_cache(
     live_service: MultimodalService, alternate_image_path: Path
 ) -> None:
@@ -126,6 +141,7 @@ async def test_real_image_analysis_round_trips_through_redis_cache(
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="audio")
 async def test_real_audio_asset_crosses_whisper_cache_postgres_and_opensearch(
     live_service: MultimodalService, generated_silence_wav: Path
 ) -> None:
@@ -145,6 +161,7 @@ async def test_real_audio_asset_crosses_whisper_cache_postgres_and_opensearch(
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="audio")
 async def test_real_whisper_result_round_trips_through_redis_cache(
     live_service: MultimodalService, generated_tone_wav: Path
 ) -> None:

@@ -59,6 +59,23 @@ def test_build_service_does_not_connect_or_load_models(
     assert service.search_index._client is None  # type: ignore[attr-defined]
 
 
+def test_build_service_reuses_an_injected_worker_registry(
+    registry: ModelRegistry,
+    models_lock_path: Path,
+    models_root: Path,
+) -> None:
+    service = build_service(
+        ApplicationSettings(
+            models_lock_path=models_lock_path,
+            models_root=models_root,
+            require_commit_pins=True,
+        ),
+        registry=registry,
+    )
+
+    assert service.registry is registry
+
+
 def test_text_validation_strips_outer_whitespace(unstarted_service: MultimodalService) -> None:
     assert unstarted_service._validate_text("  useful text \n") == "useful text"
 

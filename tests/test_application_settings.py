@@ -45,6 +45,7 @@ def test_settings_default_embedding_dimensions_match_models() -> None:
     [
         ("MODAL_ML_APP_NAME", "app_name", "Remote Lab", "Remote Lab"),
         ("MODAL_ML_MODEL_DEVICE", "model_device", "cuda", "cuda"),
+        ("MODAL_ML_CACHE_NAMESPACE", "cache_namespace", "test-worker", "test-worker"),
         ("MODAL_ML_CACHE_TTL_SECONDS", "cache_ttl_seconds", "90", 90),
         ("MODAL_ML_TEXT_EMBEDDING_DIMENSIONS", "text_embedding_dimensions", "16", 16),
         ("MODAL_ML_MAXIMUM_UPLOAD_BYTES", "maximum_upload_bytes", "1024", 1024),

@@ -101,6 +101,7 @@ def test_classifier_top_k_is_validated_before_model_load(
 
 
 @pytest.mark.model
+@pytest.mark.xdist_group(name="text")
 def test_registry_can_unload_one_real_model(registry: ModelRegistry, positive_text: str) -> None:
     registry.embed_text(positive_text)
     assert "text_embedding" in registry.loaded_keys

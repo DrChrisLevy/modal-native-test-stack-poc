@@ -9,6 +9,7 @@ import pytest
 @pytest.mark.model
 @pytest.mark.services
 @pytest.mark.slow
+@pytest.mark.xdist_group(name="text")
 def test_text_asset_http_round_trip_uses_real_models_and_services(api_client) -> None:
     response = api_client.post(
         "/v1/assets/text",
@@ -31,6 +32,7 @@ def test_text_asset_http_round_trip_uses_real_models_and_services(api_client) ->
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="image")
 def test_image_asset_http_round_trip_uses_real_models_and_services(
     api_client, generated_image_path: Path
 ) -> None:
@@ -50,6 +52,7 @@ def test_image_asset_http_round_trip_uses_real_models_and_services(
 @pytest.mark.e2e
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="audio")
 def test_audio_asset_http_round_trip_uses_real_whisper_and_services(
     api_client, generated_silence_wav: Path
 ) -> None:
@@ -69,6 +72,7 @@ def test_audio_asset_http_round_trip_uses_real_whisper_and_services(
 @pytest.mark.model
 @pytest.mark.services
 @pytest.mark.slow
+@pytest.mark.xdist_group(name="text")
 def test_search_http_endpoint_finds_real_model_indexed_asset(api_client) -> None:
     create = api_client.post(
         "/v1/assets/text",

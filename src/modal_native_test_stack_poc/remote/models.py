@@ -115,7 +115,8 @@ def read_model_state(config: RuntimeConfig) -> dict[str, Any]:
         payload = b"".join(volume.read_file("models.state.json"))
     except Exception as error:
         raise ModalNativeTestStackError(
-            f"model Volume {config.model_volume_name!r} is missing or unseeded; run models-seed"
+            f"model Volume {config.model_volume_name!r} is missing or unseeded; "
+            "run: uv run modal-native-test-stack-poc seed"
         ) from error
     try:
         state = json.loads(payload)

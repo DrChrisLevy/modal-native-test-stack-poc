@@ -7,6 +7,8 @@ import pytest
 
 from tests.conftest import value_of
 
+pytestmark = pytest.mark.xdist_group(name="audio")
+
 
 def _text(output: Any) -> str:
     return output if isinstance(output, str) else str(value_of(output, "text", "transcript"))

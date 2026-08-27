@@ -35,34 +35,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     delete_models.add_argument("--yes", action="store_true", help="confirm irreversible deletion")
 
-    test = subparsers.add_parser("test", help="fan tests across fresh full-stack Sandboxes")
-    test.add_argument("--shards", type=int, default=4)
-    test.add_argument(
-        "--scheduler",
-        choices=("duration", "count"),
-        default="duration",
-        help="balance whole files using learned durations or test counts",
+    test = subparsers.add_parser(
+        "test",
+        help="run pytest-xdist in one fresh full-stack Sandbox",
     )
-    test.add_argument(
-        "--learn",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="update duration history after a complete passing run",
-    )
+    test.add_argument("--workers", type=int, default=4)
     test.add_argument("--no-lint", action="store_true")
     test.add_argument("--force-build", action="store_true")
     test.add_argument("--keep-on-failure", action="store_true")
     test.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
-        help="focused pytest arguments after -- (focused runs use one shard)",
+        help="focused pytest arguments after --",
     )
 
     smoke = subparsers.add_parser(
         "smoke",
         help="run every real-model and real-service test",
     )
-    smoke.add_argument("--shards", type=int, default=3)
+    smoke.add_argument("--workers", type=int, default=3)
 
     shell = subparsers.add_parser("shell", help="open a fresh remote development shell")
     shell.add_argument("--command", help="run a command instead of attaching a terminal")
@@ -127,18 +118,16 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             pytest_args.pop(0)
         return run_tests(
             config,
-            shard_count=arguments.shards,
+            worker_count=arguments.workers,
             pytest_args=pytest_args,
             include_lint=not arguments.no_lint,
             force_build=arguments.force_build,
             keep_on_failure=arguments.keep_on_failure,
-            scheduler=arguments.scheduler,
-            learn=arguments.learn,
         )
     if arguments.action == "smoke":
         from modal_native_test_stack_poc.remote.runner import run_smoke
 
-        return run_smoke(config, shards=arguments.shards)
+        return run_smoke(config, workers=arguments.workers)
     if arguments.action == "shell":
         from modal_native_test_stack_poc.remote.runner import run_shell
 

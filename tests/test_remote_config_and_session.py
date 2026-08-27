@@ -266,7 +266,7 @@ def test_service_free_session_skips_sidecar_lifecycle(runtime_config: RuntimeCon
         config=runtime_config,
         image=None,  # type: ignore[arg-type]
         service_images={},
-        role="lint",
+        role="shell",
         run_id="run-123",
         with_services=False,
     )

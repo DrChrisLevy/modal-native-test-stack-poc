@@ -36,9 +36,7 @@ class SandboxSession:
     service_images: dict[str, modal.Image]
     role: str
     run_id: str
-    ordinal: int = 0
     with_services: bool = True
-    mount_models: bool = True
     allow_network: bool = False
     secret_names: tuple[str, ...] = ()
     encrypted_ports: tuple[int, ...] = ()
@@ -53,10 +51,9 @@ class SandboxSession:
     def environment(self) -> dict[str, str]:
         password = quote(self.postgres_password, safe="")
         postgres_url = f"postgresql://postgres:{password}@postgres:5432/modal_native_test_stack_poc"
-        sqlalchemy_url = postgres_url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return {
-            "DATABASE_URL": sqlalchemy_url,
-            "TEST_DATABASE_URL": sqlalchemy_url,
+            "DATABASE_URL": postgres_url,
+            "TEST_DATABASE_URL": postgres_url,
             "POSTGRES_HOST": "postgres",
             "POSTGRES_DB": "modal_native_test_stack_poc",
             "POSTGRES_USER": "postgres",
@@ -82,7 +79,7 @@ class SandboxSession:
         if self.sandbox is not None:
             raise ModalNativeTestStackError("Sandbox session was already created")
         volume_mounts: dict[str, Any] = {}
-        if self.mount_models:
+        if self.with_services:
             volume_mounts[MODEL_MOUNT] = model_volume(
                 self.config,
                 create=False,
@@ -94,7 +91,7 @@ class SandboxSession:
             )
             for name in self.secret_names
         )
-        name = f"modal-native-test-stack-poc-{self.role}-{self.run_id[:8]}-{self.ordinal + 1}"
+        name = f"modal-native-test-stack-poc-{self.role}-{self.run_id[:8]}"
         arguments: dict[str, Any] = {
             "app": self.app,
             "name": name,

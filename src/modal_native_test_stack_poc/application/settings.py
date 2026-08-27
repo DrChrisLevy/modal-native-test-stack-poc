@@ -30,6 +30,7 @@ class ApplicationSettings(BaseSettings):
     opensearch_index: str = "modal-ml-assets-v1"
     opensearch_verify_certs: bool = False
 
+    cache_namespace: str = "modal-native-test-stack-poc:v1"
     cache_ttl_seconds: int = Field(default=3_600, ge=1, le=86_400)
     text_embedding_dimensions: int = Field(default=384, ge=1)
     image_embedding_dimensions: int = Field(default=512, ge=1)

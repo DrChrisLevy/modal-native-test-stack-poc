@@ -44,6 +44,7 @@ def test_models_endpoint_lists_all_seven_capabilities(api_client) -> None:
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 def test_text_embedding_endpoint_runs_real_minilm(api_client, positive_text: str) -> None:
     response = api_client.post("/v1/text/embed", json={"text": positive_text})
     assert response.status_code == 200, response.text
@@ -55,6 +56,7 @@ def test_text_embedding_endpoint_runs_real_minilm(api_client, positive_text: str
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 def test_sentiment_endpoint_runs_real_positive_classifier(api_client, positive_text: str) -> None:
     response = api_client.post("/v1/text/sentiment", json={"text": positive_text})
     assert response.status_code == 200, response.text
@@ -63,6 +65,7 @@ def test_sentiment_endpoint_runs_real_positive_classifier(api_client, positive_t
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 def test_sentiment_endpoint_runs_real_negative_classifier(api_client, negative_text: str) -> None:
     response = api_client.post("/v1/text/sentiment", json={"text": negative_text})
     assert response.status_code == 200, response.text
@@ -71,6 +74,7 @@ def test_sentiment_endpoint_runs_real_negative_classifier(api_client, negative_t
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 def test_entities_endpoint_runs_real_ner_model(api_client, entity_text: str) -> None:
     response = api_client.post("/v1/text/entities", json={"text": entity_text})
     assert response.status_code == 200, response.text
@@ -82,6 +86,7 @@ def test_entities_endpoint_runs_real_ner_model(api_client, entity_text: str) -> 
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="text")
 def test_summary_endpoint_runs_real_flan_t5(api_client, summary_text: str) -> None:
     response = api_client.post(
         "/v1/text/summarize",
@@ -95,6 +100,7 @@ def test_summary_endpoint_runs_real_flan_t5(api_client, summary_text: str) -> No
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="image")
 def test_image_classification_endpoint_runs_real_resnet(
     api_client, generated_image_path: Path
 ) -> None:
@@ -111,6 +117,7 @@ def test_image_classification_endpoint_runs_real_resnet(
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="image")
 def test_image_embedding_endpoint_runs_real_clip(api_client, generated_image_path: Path) -> None:
     response = api_client.post(
         "/v1/images/embed",
@@ -124,6 +131,7 @@ def test_image_embedding_endpoint_runs_real_clip(api_client, generated_image_pat
 
 @pytest.mark.model
 @pytest.mark.services
+@pytest.mark.xdist_group(name="audio")
 def test_audio_endpoint_runs_real_whisper(api_client, generated_silence_wav: Path) -> None:
     response = api_client.post(
         "/v1/audio/transcribe",
