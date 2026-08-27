@@ -1,0 +1,15 @@
+.venv/
+.env
+.env.*
+!.env.example
+.netrc
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage*
+coverage.xml
+htmlcov/
+*.egg-info/
+.DS_Store
+.modal/
+artifacts/

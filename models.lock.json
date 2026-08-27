@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "key": "text_embedding",
+      "repo_id": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "task": "sentence_embedding"
+    },
+    {
+      "key": "sentiment",
+      "repo_id": "distilbert/distilbert-base-uncased-finetuned-sst-2-english",
+      "revision": "714eb0fa89d2f80546fda750413ed43d93601a13",
+      "task": "sentiment_analysis"
+    },
+    {
+      "key": "named_entities",
+      "repo_id": "dslim/bert-base-NER",
+      "revision": "d1a3e8f13f8c3566299d95fcfc9a8d2382a9affc",
+      "task": "token_classification"
+    },
+    {
+      "key": "summary",
+      "repo_id": "google/flan-t5-small",
+      "revision": "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
+      "task": "text2text_generation"
+    },
+    {
+      "key": "image_classification",
+      "repo_id": "microsoft/resnet-18",
+      "revision": "65a5785d9156231087c481e0c7dd33a5ff6f7e3e",
+      "task": "image_classification"
+    },
+    {
+      "key": "image_embedding",
+      "repo_id": "openai/clip-vit-base-patch32",
+      "revision": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+      "task": "clip_embedding"
+    },
+    {
+      "key": "speech_to_text",
+      "repo_id": "openai/whisper-tiny.en",
+      "revision": "87c7102498dcde7456f24cfd30239ca606ed9063",
+      "task": "automatic_speech_recognition"
+    }
+  ]
+}
