@@ -429,14 +429,6 @@ def run_agent(
         session.create()
         session.attach_services()
         session.wait_until_usable()
-        session.capture(
-            "bash",
-            "-c",
-            "git init -q && git config user.email modal-native-test-stack-poc@example.invalid && "
-            "git config user.name 'Modal-Native Test Stack POC' && "
-            "git add -A && git commit -qm baseline",
-            label="ephemeral agent Git baseline",
-        )
         guidance = (
             "You are in an ephemeral Modal Sandbox at /workspace. PostgreSQL, Redis, and "
             "OpenSearch are ready at their service DNS names. Real Hugging Face snapshots "
@@ -445,6 +437,14 @@ def run_agent(
         )
         assert session.sandbox is not None
         session.sandbox.filesystem.write_text(guidance + "\n", "/workspace/AGENTS.override.md")
+        session.capture(
+            "bash",
+            "-c",
+            "git init -q && git config user.email modal-native-test-stack-poc@example.invalid && "
+            "git config user.name 'Modal-Native Test Stack POC' && "
+            "git add -A && git commit -qm baseline",
+            label="ephemeral agent Git baseline",
+        )
         if command:
             result = session.run("bash", "-c", command, prefix="[agent] ")
         elif prompt is None:

@@ -20,6 +20,7 @@ PYTHON_VERSION = "3.12"
 UV_VERSION = "0.8.15"
 IMAGE_SCHEMA = "modal-native-test-stack-poc-runtime-v1"
 CODEX_RELEASE_TAG = "rust-v0.149.1"
+REMOTE_VIRTUAL_ENV = "/.uv/.venv"
 
 POSTGRES_IMAGE = "public.ecr.aws/docker/library/postgres:17.5-bookworm"
 REDIS_IMAGE = "public.ecr.aws/docker/library/redis:8.0.3-bookworm"
@@ -81,6 +82,7 @@ def dependency_image_definition(root: Path, *, force: bool = False) -> modal.Ima
             uv_version=UV_VERSION,
         )
         .run_commands(
+            _login_shell_profile_command(),
             f"mkdir -p /workspace {REMOTE_ARTIFACTS} /models",
             f"printf '%s\\n' {IMAGE_SCHEMA} >/opt/modal-native-test-stack-poc-image-schema",
             force_build=force,
@@ -100,24 +102,33 @@ def runtime_image_definition(root: Path, *, force: bool = False) -> modal.Image:
     )
 
 
+def _login_shell_profile_command() -> str:
+    return (
+        f"printf '%s\\n' 'export VIRTUAL_ENV=\"{REMOTE_VIRTUAL_ENV}\"' "
+        "'export PATH=\"$VIRTUAL_ENV/bin:$PATH\"' "
+        ">/etc/profile.d/modal-native-test-stack-poc.sh"
+    )
+
+
 def _codex_install_command() -> str:
-    # The release API provides the SHA-256 digest for the selected Linux asset.
+    # The release package contains Codex and its companion command host. The release
+    # API provides the SHA-256 digest for the selected Linux asset.
     # The Image layer is cached; --force-build is the explicit refresh mechanism.
     return (
         "set -eu; "
-        "release=/tmp/codex-release.json; archive=/tmp/codex.tar.gz; "
+        "release=/tmp/codex-release.json; archive=/tmp/codex-package.tar.gz; "
         "tag=" + CODEX_RELEASE_TAG + "; "
         'curl -fsSL "https://api.github.com/repos/openai/codex/releases/tags/$tag" '
         "-o $release; "
-        "asset=codex-x86_64-unknown-linux-musl.tar.gz; "
+        "asset=codex-package-x86_64-unknown-linux-musl.tar.gz; "
         'digest=$(jq -r --arg asset "$asset" '
         "'.assets[] | select(.name == $asset) | .digest // empty' $release | sed 's/^sha256://'); "
         'test -n "$tag"; test -n "$digest"; '
         'curl -fsSL "https://github.com/openai/codex/releases/download/$tag/$asset" -o $archive; '
         "printf '%s  %s\\n' \"$digest\" $archive | sha256sum -c -; "
-        "tar -xzf $archive -C /usr/local/bin; "
-        "mv /usr/local/bin/codex-x86_64-unknown-linux-musl /usr/local/bin/codex; "
-        "chmod 755 /usr/local/bin/codex; codex --version"
+        "tar -xzf $archive -C /usr/local; "
+        "chmod 755 /usr/local/bin/codex /usr/local/bin/codex-code-mode-host; "
+        "test -x /usr/local/bin/codex-code-mode-host; codex --version"
     )
 
 

@@ -208,7 +208,6 @@ class SandboxSession:
             raise ModalNativeTestStackError("Sandbox is not running")
         process = self.sandbox.exec(
             "bash",
-            "-l",
             workdir="/workspace",
             timeout=self.config.timeout_seconds,
             pty=True,

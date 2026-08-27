@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -258,6 +259,29 @@ def test_session_operations_require_a_running_sandbox(runtime_config: RuntimeCon
         session.run("true")
     with pytest.raises(ModalNativeTestStackError, match="not running"):
         session.run_captured("true")
+
+
+def test_terminal_preserves_the_image_environment(runtime_config: RuntimeConfig) -> None:
+    sandbox = Mock()
+    sandbox.exec.return_value.wait.return_value = 0
+    session = SandboxSession(
+        app=None,  # type: ignore[arg-type]
+        config=runtime_config,
+        image=None,  # type: ignore[arg-type]
+        service_images={},
+        role="shell",
+        run_id="run-123",
+        sandbox=sandbox,
+    )
+
+    assert session.open_terminal() == 0
+    sandbox.exec.assert_called_once_with(
+        "bash",
+        workdir="/workspace",
+        timeout=runtime_config.timeout_seconds,
+        pty=True,
+    )
+    sandbox.exec.return_value.attach.assert_called_once_with()
 
 
 def test_service_free_session_skips_sidecar_lifecycle(runtime_config: RuntimeConfig) -> None:
