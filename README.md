@@ -3,11 +3,14 @@
 
 # Intro
 
-This repo goes along with my [blog post](drchrislevy.com/blog)
+This repo goes along with my [blog post](https://drchrislevy.com/blog/)
 about how Modal now has alpha support for [Sandbox Sidecars](https://modal.com/docs/guide/sandbox-sidecars).
 
+It runs a dummy FastAPI/ML application, PostgreSQL, Redis, OpenSearch, pytest, remote
+shells, and Codex on Modal—without Docker Compose, Docker-in-Docker, or GitHub Actions.
+
 The code could possibly be trash. I never read it. It's just a talking point for my blog post
-and to give you ideas. The point is the potential of using these Modal primatives
+and to give you ideas. The point is the potential of using these Modal primitives
 for development, CI, experiments with agents, etc.
 
 ## Setup
@@ -15,7 +18,7 @@ for development, CI, experiments with agents, etc.
 
 ```bash
 export MODAL_PROFILE=your-profile
-export MODAL_ENVIRONMENT=dev
+export MODAL_ENVIRONMENT=your-environment
 ```
 
 ```bash
@@ -28,17 +31,17 @@ uv run modal secret create openai-secret OPENAI_API_KEY="$OPENAI_API_KEY"
 ```bash
 # pre-builds the environment
 uv run modal-native-test-stack-poc build
-# download models to modal volume
+# download models to the Modal Volume
 uv run modal-native-test-stack-poc seed
 # Run the full pytest suite and Ruff remotely in one Modal Sandbox with PostgreSQL, Redis, and OpenSearch Sidecars.
 uv run modal-native-test-stack-poc test
 ```
 
 
-## Other commands
+### Other commands
 
 ```bash
-# shell into container
+# open a shell in a fresh Modal Sandbox
 uv run modal-native-test-stack-poc shell
 # Start FastAPI with real models and Sidecars on Modal, print its HTTPS URL, and keep it running until you exit
 uv run modal-native-test-stack-poc api
