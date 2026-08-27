@@ -31,3 +31,10 @@ def test_agent_accepts_a_differently_named_secret() -> None:
     arguments = build_parser().parse_args(["agent", "--secret", "custom-openai-secret"])
 
     assert arguments.secret == ["custom-openai-secret"]
+
+
+def test_agent_accepts_one_shot_prompt_without_arbitrary_command_mode() -> None:
+    arguments = build_parser().parse_args(["agent", "--prompt", "Inspect the repository"])
+
+    assert arguments.prompt == "Inspect the repository"
+    assert not hasattr(arguments, "command")

@@ -57,9 +57,8 @@ def build_parser() -> argparse.ArgumentParser:
     api = subparsers.add_parser("api", help="serve FastAPI and attach a remote shell")
     api.add_argument("--network", action="store_true", help="allow public network egress")
 
-    agent = subparsers.add_parser("agent", help="run Codex or another agent in the full stack")
+    agent = subparsers.add_parser("agent", help="run Codex in the full stack")
     agent.add_argument("--prompt", help="one-shot Codex prompt; omit for the interactive TUI")
-    agent.add_argument("--command", help="custom agent command instead of bundled Codex")
     agent.add_argument(
         "--secret",
         action="append",
@@ -144,7 +143,6 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
         return run_agent(
             config,
             prompt=arguments.prompt,
-            command=arguments.command,
             secret_names=secrets,
             allow_network=not arguments.offline,
         )

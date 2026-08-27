@@ -31,11 +31,19 @@ from modal_native_test_stack_poc.remote.processes import ProcessResult
 from modal_native_test_stack_poc.remote.session import SandboxSession
 
 AGENT_PROMPT_PATH = "/tmp/modal-native-test-stack-poc-prompt.txt"
+CODEX_CONFIG = (
+    'approval_policy = "never"\n'
+    'sandbox_mode = "danger-full-access"\n\n'
+    '[projects."/workspace"]\n'
+    'trust_level = "trusted"\n'
+)
 CODEX_API_KEY_LOGIN = (
     'test -n "${OPENAI_API_KEY:-}" || '
     '{ echo "OPENAI_API_KEY is missing; create the openai-secret Modal Secret or pass '
     '--secret NAME" >&2; exit 2; }; '
-    "printenv OPENAI_API_KEY | codex login --with-api-key >/dev/null"
+    "mkdir -p /root/.codex; "
+    "printenv OPENAI_API_KEY | codex login --with-api-key >/dev/null; "
+    "codex login status >/dev/null"
 )
 
 
@@ -61,6 +69,9 @@ def _terminate_session(session: SandboxSession) -> None:
 
 def _login_codex(session: SandboxSession) -> None:
     session.capture("bash", "-c", CODEX_API_KEY_LOGIN, label="Codex API-key login")
+    if session.sandbox is None:
+        raise ModalNativeTestStackError("agent Sandbox was not created")
+    session.sandbox.filesystem.write_text(CODEX_CONFIG, "/root/.codex/config.toml")
 
 
 def _run_pytest(
@@ -391,15 +402,14 @@ def run_agent(
     config: RuntimeConfig,
     *,
     prompt: str | None,
-    command: str | None,
     secret_names: Sequence[str],
     allow_network: bool,
 ) -> int:
     config.validate()
     read_model_state(config)
     app = lookup_app(config)
-    images = build_images(app, config, include_agent=command is None)
-    image = images.agent if command is None else images.runtime
+    images = build_images(app, config, include_agent=True)
+    image = images.agent
     if image is None:
         raise ModalNativeTestStackError("agent Image was not built")
     run_id = uuid.uuid4().hex
@@ -433,33 +443,32 @@ def run_agent(
             "git add -A && git commit -qm baseline",
             label="ephemeral agent Git baseline",
         )
-        if command:
-            result = session.run("bash", "-c", command, prefix="[agent] ")
+        _login_codex(session)
+        if prompt is None:
+            process = session.sandbox.exec(
+                "env",
+                "TERM=xterm-256color",
+                "codex",
+                "--sandbox",
+                "danger-full-access",
+                "--ask-for-approval",
+                "never",
+                workdir="/workspace",
+                timeout=config.timeout_seconds,
+                pty=True,
+            )
+            process.attach()
+            process.wait()
+            result = ProcessResult((), process.returncode, "", "")
         else:
-            _login_codex(session)
-            if prompt is None:
-                process = session.sandbox.exec(
-                    "codex",
-                    "--sandbox",
-                    "danger-full-access",
-                    "--ask-for-approval",
-                    "never",
-                    workdir="/workspace",
-                    timeout=config.timeout_seconds,
-                    pty=True,
-                )
-                process.attach()
-                process.wait()
-                result = ProcessResult((), process.returncode, "", "")
-            else:
-                session.sandbox.filesystem.write_text(prompt, AGENT_PROMPT_PATH)
-                result = session.run(
-                    "bash",
-                    "-c",
-                    "codex --sandbox danger-full-access --ask-for-approval never exec - "
-                    f"<{AGENT_PROMPT_PATH}",
-                    prefix="[agent] ",
-                )
+            session.sandbox.filesystem.write_text(prompt, AGENT_PROMPT_PATH)
+            result = session.run(
+                "bash",
+                "-c",
+                "codex --sandbox danger-full-access --ask-for-approval never exec - "
+                f"<{AGENT_PROMPT_PATH}",
+                prefix="[agent] ",
+            )
         session.capture(
             "bash",
             "-c",
