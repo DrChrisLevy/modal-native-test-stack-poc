@@ -49,12 +49,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="focused pytest arguments after --",
     )
 
-    smoke = subparsers.add_parser(
-        "smoke",
-        help="run every real-model and real-service test",
-    )
-    smoke.add_argument("--workers", type=int, default=3)
-
     shell = subparsers.add_parser("shell", help="open a fresh remote development shell")
     shell.add_argument("--command", help="run a command instead of attaching a terminal")
     shell.add_argument("--no-services", action="store_true")
@@ -126,10 +120,6 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
             force_build=arguments.force_build,
             keep_on_failure=arguments.keep_on_failure,
         )
-    if arguments.action == "smoke":
-        from modal_native_test_stack_poc.remote.runner import run_smoke
-
-        return run_smoke(config, workers=arguments.workers)
     if arguments.action == "shell":
         from modal_native_test_stack_poc.remote.runner import run_shell
 

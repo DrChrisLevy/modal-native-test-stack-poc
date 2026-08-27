@@ -59,8 +59,6 @@ def _run_pytest(
     worker_count: int,
     native_threads: int,
     pytest_args: Sequence[str],
-    selection_args: Sequence[str],
-    enforce_coverage: bool,
 ) -> ProcessResult:
     if session.sandbox is None:
         raise ModalNativeTestStackError("test Sandbox was not created")
@@ -74,11 +72,11 @@ def _run_pytest(
         "--cov=modal_native_test_stack_poc",
         "--cov-report=term-missing",
         f"--cov-report=xml:{coverage_xml}",
-        f"--cov-fail-under={80 if enforce_coverage else 0}",
+        "--cov-fail-under=80",
     ]
     if worker_count > 1:
         arguments.extend(("-n", str(worker_count), "--dist", "loadgroup"))
-    arguments.extend(pytest_args or selection_args)
+    arguments.extend(pytest_args)
     return session.run(
         *arguments,
         prefix="[pytest] ",
@@ -96,8 +94,6 @@ def _run_timed_pytest(
     worker_count: int,
     native_threads: int,
     pytest_args: Sequence[str],
-    selection_args: Sequence[str],
-    enforce_coverage: bool,
 ) -> tuple[ProcessResult, float]:
     started = time.monotonic()
     result = _run_pytest(
@@ -105,8 +101,6 @@ def _run_timed_pytest(
         worker_count=worker_count,
         native_threads=native_threads,
         pytest_args=pytest_args,
-        selection_args=selection_args,
-        enforce_coverage=enforce_coverage,
     )
     return result, time.monotonic() - started
 
@@ -165,8 +159,6 @@ def run_tests(
     include_lint: bool = True,
     force_build: bool = False,
     keep_on_failure: bool = False,
-    selection_args: Sequence[str] = (),
-    enforce_coverage: bool = True,
 ) -> int:
     if worker_count < 1:
         raise ModalNativeTestStackError("--workers must be at least one")
@@ -238,8 +230,6 @@ def run_tests(
                 worker_count=worker_count,
                 native_threads=native_threads,
                 pytest_args=pytest_args,
-                selection_args=selection_args,
-                enforce_coverage=enforce_coverage,
             )
             lint_future = executor.submit(_run_timed_lint, test_session) if include_lint else None
             pytest_result, pytest_seconds = pytest_future.result()
@@ -302,18 +292,6 @@ def run_tests(
     print(f"Artifacts: {artifact_dir}")
     print(f"Run {run_id}: {'FAIL' if failed else 'PASS'} in {summary['seconds']:.1f}s")
     return return_code
-
-
-def run_smoke(config: RuntimeConfig, *, workers: int = 3) -> int:
-    """Exercise all real model and service tests, omitting only pure unit tests."""
-
-    return run_tests(
-        config,
-        worker_count=workers,
-        include_lint=False,
-        selection_args=("-m", "model or services or e2e"),
-        enforce_coverage=False,
-    )
 
 
 def run_shell(

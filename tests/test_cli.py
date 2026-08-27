@@ -15,12 +15,6 @@ def test_test_command_can_select_worker_count() -> None:
     assert arguments.workers == 3
 
 
-def test_smoke_command_can_select_worker_count() -> None:
-    arguments = build_parser().parse_args(["smoke", "--workers", "2"])
-
-    assert arguments.workers == 2
-
-
 def test_focused_pytest_arguments_remain_after_worker_option() -> None:
     arguments = build_parser().parse_args(["test", "--workers", "3", "--", "tests/model", "-x"])
 
