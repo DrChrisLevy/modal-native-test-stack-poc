@@ -3,8 +3,9 @@
 
 # Intro
 
-This repo goes along with my [blog post](https://drchrislevy.com/blog/)
-about how Modal now has alpha support for [Sandbox Sidecars](https://modal.com/docs/guide/sandbox-sidecars).
+This repo goes along with my [blog post](https://drchrislevy.com/blog/) about Modal's
+[Sandbox Sidecars](https://modal.com/docs/guide/sandbox-sidecars), which were in alpha at
+the time of writing.
 
 It runs a dummy FastAPI/ML application, PostgreSQL, Redis, OpenSearch, pytest, remote
 shells, and Codex on Modal—without Docker Compose, Docker-in-Docker, or GitHub Actions.
