@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
+import shutil
 import sys
+import textwrap
 import time
 import uuid
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -45,6 +49,162 @@ CODEX_API_KEY_LOGIN = (
     "printenv OPENAI_API_KEY | codex login --with-api-key >/dev/null; "
     "codex login status >/dev/null"
 )
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_DIM = "\033[2m"
+ANSI_CYAN = "\033[36m"
+ANSI_GREEN = "\033[32m"
+ANSI_RED = "\033[31m"
+ANSI_YELLOW = "\033[33m"
+
+
+def _terminal_color_enabled() -> bool:
+    return sys.stdout.isatty() and "NO_COLOR" not in os.environ
+
+
+def _terminal_width() -> int:
+    return max(72, min(shutil.get_terminal_size((100, 24)).columns, 120))
+
+
+@dataclass(frozen=True)
+class CodexEventRenderer:
+    color: bool = field(default_factory=_terminal_color_enabled)
+    width: int = field(default_factory=_terminal_width)
+
+    def _style(self, text: str, *codes: str) -> str:
+        if not self.color:
+            return text
+        return f"{''.join(codes)}{text}{ANSI_RESET}"
+
+    def rule(self, label: str, *, color: str = ANSI_DIM) -> str:
+        prefix = f"─ {label} "
+        return self._style(prefix + "─" * max(1, self.width - len(prefix)), color)
+
+    @staticmethod
+    def _error_message(event: dict[str, object]) -> str:
+        error = event.get("error")
+        if isinstance(error, dict):
+            message = error.get("message")
+            if isinstance(message, str):
+                return message
+        if isinstance(error, str):
+            return error
+        message = event.get("message")
+        return message if isinstance(message, str) else str(error or event)
+
+    @staticmethod
+    def _display_command(command: str) -> str:
+        try:
+            arguments = shlex.split(command)
+        except ValueError:
+            return command
+        if (
+            len(arguments) == 3
+            and arguments[0].rsplit("/", 1)[-1] in {"bash", "sh", "zsh"}
+            and arguments[1] in {"-c", "-lc"}
+        ):
+            return arguments[2]
+        return command
+
+    def _command_started(self, command: str) -> str:
+        command = self._display_command(command)
+        first_prefix = f"{self._style('•', ANSI_YELLOW)} {self._style('Running', ANSI_BOLD)} "
+        continuation_prefix = "  │ "
+        lines: list[str] = []
+        first = True
+        for source_line in command.splitlines() or [command]:
+            prefix = first_prefix if first else continuation_prefix
+            chunks = textwrap.wrap(
+                source_line,
+                width=max(24, self.width - len(prefix)),
+                break_long_words=False,
+                break_on_hyphens=False,
+            ) or [""]
+            for chunk in chunks:
+                prefix = first_prefix if first else continuation_prefix
+                lines.append(f"{prefix}{self._style(chunk, ANSI_CYAN)}")
+                first = False
+        return "\n" + "\n".join(lines) + "\n"
+
+    def _command_completed(self, item: dict[str, object]) -> str:
+        status = item.get("status")
+        status_text = status if isinstance(status, str) else "completed"
+        succeeded = status_text == "completed"
+        marker = self._style("✓" if succeeded else "✗", ANSI_GREEN if succeeded else ANSI_RED)
+        label = self._style(status_text, ANSI_DIM if succeeded else ANSI_RED)
+        return f"  └ {marker} {label}\n"
+
+    def _agent_message(self, text: str) -> str:
+        lines = text.rstrip().splitlines()
+        rendered = [f"{self._style('•', ANSI_CYAN)} {lines[0]}"]
+        rendered.extend(f"  {line}" if line else "" for line in lines[1:])
+        return "\n" + "\n".join(rendered) + "\n"
+
+    def _completed(self, event: dict[str, object]) -> str:
+        usage = event.get("usage")
+        if not isinstance(usage, dict):
+            usage = {}
+        input_tokens = usage.get("input_tokens")
+        cached_tokens = usage.get("cached_input_tokens", 0)
+        output_tokens = usage.get("output_tokens")
+        reasoning_tokens = usage.get("reasoning_output_tokens", 0)
+        if isinstance(input_tokens, int) and isinstance(output_tokens, int):
+            cached_tokens = cached_tokens if isinstance(cached_tokens, int) else 0
+            uncached_input = max(0, input_tokens - cached_tokens)
+            total_tokens = uncached_input + output_tokens
+            usage_text = (
+                f"total={total_tokens:,} input={uncached_input:,}"
+                + (f" (+{cached_tokens:,} cached)" if cached_tokens else "")
+                + f" output={output_tokens:,}"
+                + (
+                    f" (reasoning {reasoning_tokens:,})"
+                    if isinstance(reasoning_tokens, int) and reasoning_tokens
+                    else ""
+                )
+            )
+        else:
+            usage_text = "unavailable"
+        return (
+            f"\n{self.rule('Completed', color=ANSI_GREEN)}\n"
+            f"{self._style(f'Token usage: {usage_text}', ANSI_DIM)}\n"
+        )
+
+    def format_event(self, event: dict[str, object]) -> str | None:
+        event_type = event.get("type")
+        item = event.get("item")
+
+        if event_type in {"item.started", "item.completed"} and isinstance(item, dict):
+            item_type = item.get("type")
+            if event_type == "item.started" and item_type == "command_execution":
+                command = item.get("command")
+                return self._command_started(command) if isinstance(command, str) else None
+            if event_type == "item.completed" and item_type == "agent_message":
+                text = item.get("text")
+                return self._agent_message(text) if isinstance(text, str) and text.strip() else None
+            if event_type == "item.completed" and item_type == "command_execution":
+                return self._command_completed(item)
+
+        if event_type == "turn.completed":
+            return self._completed(event)
+        if event_type == "turn.failed":
+            message = self._error_message(event)
+            return f"\n{self.rule('Failed', color=ANSI_RED)}\n{message}\n"
+        if event_type == "error":
+            message = self._error_message(event)
+            return f"\n{self.rule('Error', color=ANSI_RED)}\n{message}\n"
+        return None
+
+    def __call__(self, line: str) -> str | None:
+        payload = line.strip()
+        if not payload:
+            return None
+        try:
+            event = json.loads(payload)
+        except json.JSONDecodeError:
+            return f"{payload}\n"
+        if not isinstance(event, dict):
+            return f"{payload}\n"
+        return self.format_event(event)
 
 
 def lookup_app(config: RuntimeConfig, *, create: bool = True) -> modal.App:
@@ -461,13 +621,15 @@ def run_agent(
             process.wait()
             result = ProcessResult((), process.returncode, "", "")
         else:
+            renderer = CodexEventRenderer()
+            print(f"\n{renderer.rule('Codex one-shot')}")
             session.sandbox.filesystem.write_text(prompt, AGENT_PROMPT_PATH)
             result = session.run(
                 "bash",
                 "-c",
-                "codex --sandbox danger-full-access --ask-for-approval never exec - "
+                "codex --sandbox danger-full-access --ask-for-approval never exec --json - "
                 f"<{AGENT_PROMPT_PATH}",
-                prefix="[agent] ",
+                stdout_line_transform=renderer,
             )
         session.capture(
             "bash",

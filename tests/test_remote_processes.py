@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -69,3 +70,25 @@ def test_stream_process_without_prefix_preserves_output(capsys) -> None:
     result = stream_process(_process("print('plain')"))
     assert capsys.readouterr().out == "plain\n"
     assert result.returncode == 0
+
+
+def test_stream_process_transforms_complete_stdout_lines_and_preserves_raw_output(
+    capsys,
+) -> None:
+    process = SimpleNamespace(
+        stdout=iter(['{"one":', '1}\n{"two":2}\n', '{"three":3}']),
+        stderr=iter(["codex warning\n"]),
+        returncode=0,
+        wait=lambda: None,
+    )
+
+    result = stream_process(
+        process,
+        stdout_line_transform=lambda line: f"parsed:{line}",
+    )
+
+    captured = capsys.readouterr()
+    assert captured.out == ('parsed:{"one":1}\nparsed:{"two":2}\nparsed:{"three":3}')
+    assert captured.err == "codex warning\n"
+    assert result.stdout == '{"one":1}\n{"two":2}\n{"three":3}'
+    assert result.stderr == "codex warning\n"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, TextIO
 
@@ -52,7 +53,12 @@ def capture_process(process: Any, *, label: str) -> str:
     return result.stdout
 
 
-def stream_process(process: Any, *, prefix: str = "") -> ProcessResult:
+def stream_process(
+    process: Any,
+    *,
+    prefix: str = "",
+    stdout_line_transform: Callable[[str], str | None] | None = None,
+) -> ProcessResult:
     """Mirror remote output live while retaining it for summaries and diagnostics."""
 
     output_lock = threading.Lock()
@@ -79,12 +85,46 @@ def stream_process(process: Any, *, prefix: str = "") -> ProcessResult:
             # stream before the local iterator receives its final sentinel.
             return
 
-    threads = (
+    def pump_transformed_stdout(stream: Any, transform: Callable[[str], str | None]) -> None:
+        pending = ""
+
+        def render(line: str) -> None:
+            rendered = transform(line)
+            if rendered is None:
+                return
+            with output_lock:
+                print(rendered, end="", file=sys.stdout, flush=True)
+
+        try:
+            for chunk in stream:
+                stdout.append(chunk)
+                pending += chunk
+                lines = pending.splitlines(keepends=True)
+                pending = ""
+                if lines and not lines[-1].endswith(("\n", "\r")):
+                    pending = lines.pop()
+                for line in lines:
+                    render(line)
+            if pending:
+                render(pending)
+        except Exception:
+            return
+
+    stdout_thread = (
         threading.Thread(
             target=pump,
             args=(process.stdout, sys.stdout, stdout),
             daemon=True,
-        ),
+        )
+        if stdout_line_transform is None
+        else threading.Thread(
+            target=pump_transformed_stdout,
+            args=(process.stdout, stdout_line_transform),
+            daemon=True,
+        )
+    )
+    threads = (
+        stdout_thread,
         threading.Thread(
             target=pump,
             args=(process.stderr, sys.stderr, stderr),

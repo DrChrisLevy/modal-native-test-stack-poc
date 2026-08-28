@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import quote
@@ -176,6 +177,7 @@ class SandboxSession:
         prefix: str = "",
         timeout: int | None = None,
         environment: dict[str, str] | None = None,
+        stdout_line_transform: Callable[[str], str | None] | None = None,
     ) -> ProcessResult:
         if self.sandbox is None:
             raise ModalNativeTestStackError("Sandbox is not running")
@@ -185,7 +187,11 @@ class SandboxSession:
             timeout=timeout or self.config.timeout_seconds,
             env=environment,
         )
-        return stream_process(process, prefix=prefix)
+        return stream_process(
+            process,
+            prefix=prefix,
+            stdout_line_transform=stdout_line_transform,
+        )
 
     def run_captured(
         self,
